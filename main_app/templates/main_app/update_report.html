@@ -1,0 +1,12 @@
+<h1>Tambah Laporan</h1>
+<a href="/">Home</a> |
+<a href="/about/">About</a> |
+<a href="/contacts/">Contact</a>
+
+<hr>
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Simpan</button>
+</form>
