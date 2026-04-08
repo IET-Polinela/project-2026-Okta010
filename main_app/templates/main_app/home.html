@@ -6,21 +6,25 @@
 
 <hr>
 
-<h2>Daftar Laporan</h2>
-
 {% for report in reports %}
     <div style="border:1px solid black; padding:10px; margin-bottom:10px;">
         <p><b>Judul:</b> {{ report.title }}</p>
         <p><b>Lokasi:</b> {{ report.location }}</p>
         <p><b>Status:</b> {{ report.status }}</p>
 
-        <a href="/update/{{ report.id }}">Edit</a> |
-        <a href="/delete/{{ report.id }}">Hapus</a> |
+        <a href="{% url 'report_detail' report.pk %}">Detail</a> |
+        <a href="{% url 'update_report' report.pk %}">Edit</a> |
+        <a href="{% url 'delete_report' report.pk %}">Hapus</a>
 
-        {% if report.status == "REPORTED" %}
-            <a href="/verify/{{ report.id }}">✔ Verifikasi</a>
-        {% else %}
-            <span>✔ Sudah Diverifikasi</span>
-        {% endif %}
+        <form action="{% url 'update_status' report.pk %}" method="POST" style="margin-top: 10px;">
+            {% csrf_token %}
+            <select name="status">
+                <option value="REPORTED" {% if report.status == 'REPORTED' %}selected{% endif %}>Reported</option>
+                <option value="VERIFIED" {% if report.status == 'VERIFIED' %}selected{% endif %}>Verified</option>
+                <option value="IN PROGRESS" {% if report.status == 'IN PROGRESS' %}selected{% endif %}>In Progress</option>
+                <option value="RESOLVED" {% if report.status == 'RESOLVED' %}selected{% endif %}>Resolved</option>
+            </select>
+            <button type="submit">Ubah Status</button>
+        </form>
     </div>
 {% endfor %}

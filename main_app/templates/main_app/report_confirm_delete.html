@@ -1,0 +1,9 @@
+<h1>Konfirmasi Hapus Laporan</h1>
+<hr>
+<p>Apakah Anda yakin ingin menghapus laporan dengan judul: <strong>"{{ object.title }}"</strong>?</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" style="background-color: red; color: white;">Ya, Hapus Data</button>
+    <a href="{% url 'home' %}">Batal</a>
+</form>

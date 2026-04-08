@@ -1,0 +1,10 @@
+<h1>Detail Laporan</h1>
+<hr>
+<p><strong>Judul:</strong> {{ report.title }}</p>
+<p><strong>Kategori:</strong> {{ report.category }}</p>
+<p><strong>Lokasi:</strong> {{ report.location }}</p>
+<p><strong>Status:</strong> {{ report.status }}</p>
+<p><strong>Deskripsi:</strong> {{ report.description }}</p>
+<p><b>Dibuat pada:</b> {{ report.created_at|date:"d F Y, H:i" }} WIB</p>
+<hr>
+<a href="{% url 'home' %}">Kembali ke Daftar</a>
