@@ -1,10 +1,56 @@
-<h1>Detail Laporan</h1>
-<hr>
-<p><strong>Judul:</strong> {{ report.title }}</p>
-<p><strong>Kategori:</strong> {{ report.category }}</p>
-<p><strong>Lokasi:</strong> {{ report.location }}</p>
-<p><strong>Status:</strong> {{ report.status }}</p>
-<p><strong>Deskripsi:</strong> {{ report.description }}</p>
-<p><b>Dibuat pada:</b> {{ report.created_at|date:"d F Y, H:i" }} WIB</p>
-<hr>
-<a href="{% url 'home' %}">Kembali ke Daftar</a>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'report_list' %}" class="text-decoration-none">Daftar Laporan</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Detail Laporan</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="card-title mb-0">Informasi Rinci Laporan</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-4">
+                    <h2 class="fw-bold text-primary">{{ report.title }}</h2>
+                    <hr>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Lokasi Kejadian</div>
+                    <div class="col-sm-8 text-muted">: {{ report.location }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Status Penanganan</div>
+                    <div class="col-sm-8">
+                        : <span class="badge bg-info px-3">{{ report.status|default:"Sedang Diverifikasi" }}</span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Deskripsi Laporan</div>
+                    <div class="col-sm-8">
+                        <div class="p-3 bg-light rounded border border-light">
+                            {{ report.description|default:"Tidak terdapat deskripsi tambahan untuk laporan ini." }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5 d-flex gap-2">
+                    <a href="{% url 'report_list' %}" class="btn btn-outline-secondary px-4">
+                        <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
+                    </a>
+                    <a href="{% url 'update_report' report.pk %}" class="btn btn-info text-white px-4">
+                        <i class="bi bi-pencil-square me-1"></i> Ubah Data
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

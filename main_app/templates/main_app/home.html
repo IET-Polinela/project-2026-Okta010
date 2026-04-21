@@ -1,30 +1,55 @@
-<h1>Selamat Datang di Kota Bandung</h1>
-<p>website untuk pelaporan masalah.</p>
-<h1>Daftar Laporan</h1>
+{% extends 'base.html' %}
 
-<a href="/add/">Tambah Laporan</a>
+{% block title %}Home - Bandung City{% endblock %}
 
-<hr>
+{% block content %}
+<style>
+    body {
+        background-color: #fce4ec !important;
+    }
+    .main-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+    .home-card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+    }
+    .btn-pink {
+        background-color: #ff85a2 !important;
+        color: white !important;
+        border: none !important;
+        padding: 10px 15px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        white-space: nowrap;
+    }
+</style>
 
-{% for report in reports %}
-    <div style="border:1px solid black; padding:10px; margin-bottom:10px;">
-        <p><b>Judul:</b> {{ report.title }}</p>
-        <p><b>Lokasi:</b> {{ report.location }}</p>
-        <p><b>Status:</b> {{ report.status }}</p>
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="home-card">
+        <h2 class="fw-bold mb-2" style="color: #ff69b4; font-size: 1.6rem;">
+            Selamat Datang di Kota Bandung
+        </h2>
+        
+        <p class="text-muted mb-4" style="font-size: 0.95rem;">
+            Sistem pelaporan masalah Kota Bandung
+        </p>
 
-        <a href="{% url 'report_detail' report.pk %}">Detail</a> |
-        <a href="{% url 'update_report' report.pk %}">Edit</a> |
-        <a href="{% url 'delete_report' report.pk %}">Hapus</a>
+        <div class="d-flex justify-content-center gap-2">
+            <a href="{% url 'report_list' %}" class="btn btn-pink shadow-sm">
+                Lihat Laporan
+            </a>
 
-        <form action="{% url 'update_status' report.pk %}" method="POST" style="margin-top: 10px;">
-            {% csrf_token %}
-            <select name="status">
-                <option value="REPORTED" {% if report.status == 'REPORTED' %}selected{% endif %}>Reported</option>
-                <option value="VERIFIED" {% if report.status == 'VERIFIED' %}selected{% endif %}>Verified</option>
-                <option value="IN PROGRESS" {% if report.status == 'IN PROGRESS' %}selected{% endif %}>In Progress</option>
-                <option value="RESOLVED" {% if report.status == 'RESOLVED' %}selected{% endif %}>Resolved</option>
-            </select>
-            <button type="submit">Ubah Status</button>
-        </form>
+            <a href="{% url 'report_create' %}" class="btn btn-pink shadow-sm">
+                + Tambah Laporan
+            </a>
+        </div>
     </div>
-{% endfor %}
+</div>
+{% endblock %}
