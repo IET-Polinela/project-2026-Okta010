@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'usermanagement_24782090',
     'main_app',
     'about',
     'contacts',
@@ -125,3 +126,17 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+# Definisi Custom User Model [cite: 21]
+AUTH_USER_MODEL = 'usermanagement_24782090.User'
+
+# Alur navigasi autentikasi 
+LOGIN_REDIRECT_URL = 'report_list'
+LOGOUT_REDIRECT_URL = 'login'
+LOGIN_URL = 'login'
+
+# Konfigurasi Message Tags untuk Feedback System 
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.ERROR: 'danger',
+}
