@@ -2,84 +2,148 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold text-dark">Daftar Laporan</h2>
-    
-    {% if user.is_authenticated and user.is_admin %}
-    <a href="{% url 'report_create' %}" class="btn btn-primary shadow-sm">
+    <h2 class="fw-bold" style="color: #f759ab;">Daftar Laporan</h2>
+    {% if user.is_admin %}
+    <a href="{% url 'report_create' %}" class="btn btn-pink-custom rounded-pill px-4 shadow-sm" style="background-color: #f759ab; color: white;">
         <i class="bi bi-plus-circle me-1"></i> Tambah Laporan
     </a>
     {% endif %}
 </div>
 
-<div class="table-responsive shadow-sm rounded border">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="table-dark">
+<div class="mb-4">
+    <div class="input-group shadow-sm">
+        <span class="input-group-text bg-white border-end-0" style="border-color: #f759ab; border-radius: 10px 0 0 10px;">
+            <i class="bi bi-search" style="color: #f759ab;"></i>
+        </span>
+        <input type="text" id="searchInput" class="form-control border-start-0" 
+               placeholder="Cari lokasi atau judul laporan..." 
+               style="border-color: #f759ab; border-radius: 0 10px 10px 0;" 
+               onkeyup="filterTable()">
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle" id="reportTable">
+        <thead style="background-color: #fff0f6; color: #f759ab;">
             <tr>
-                <th class="py-3 px-3">Judul</th>
-                <th class="px-3">Lokasi</th>
-                <th class="px-3 text-center">Status</th>
-                {% if user.is_admin %}
-                <th class="px-3 text-center">Aksi</th>
-                {% endif %}
+                <th scope="col" class="py-3">Judul</th>
+                <th scope="col" class="py-3">Lokasi</th>
+                <th scope="col" class="py-3">Status</th>
+                <th scope="col" class="py-3 text-center">Aksi</th>
             </tr>
         </thead>
         <tbody>
             {% for report in reports %}
             <tr>
-                <td class="py-3 px-3 fw-semibold">
-                    <a href="{% url 'report_detail' report.pk %}" class="text-decoration-none text-primary">
-                        {{ report.title }}
-                    </a>
+                <td class="fw-medium">{{ report.title }}</td>
+                <td class="text-muted small">{{ report.location }}</td>
+                <td>
+                    <span class="badge rounded-pill {% if report.status == 'VERIFIED' %}bg-primary{% elif report.status == 'IN_PROGRESS' %}bg-warning text-dark{% elif report.status == 'RESOLVED' %}bg-secondary{% else %}bg-info text-dark{% endif %}">
+                        {{ report.status }}
+                    </span>
                 </td>
-                <td class="px-3">{{ report.location }}</td>
-                <td class="px-3 text-center">
-                    {% if report.status|lower == 'resolved' %}
-                        <span class="badge bg-success px-3">Resolved</span>
-                    {% elif report.status|lower == 'in progress' %}
-                        <span class="badge bg-warning text-dark px-3">In Progress</span>
-                    {% elif report.status|lower == 'verified' %}
-                        <span class="badge bg-primary px-3">Verified</span>
-                    {% else %}
-                        <span class="badge bg-secondary px-3">{{ report.status|default:"Reported" }}</span>
+                <td class="text-center">
+                    <button class="btn btn-sm px-3 rounded-pill" 
+                            style="background-color: #00bcd4; color: white;" 
+                            onclick="showDetail({{ report.id }})">
+                        Detail
+                    </button>
+                    
+                    {% if user.is_admin %}
+                    <a href="{% url 'update_report' report.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill border-0 ms-1">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
                     {% endif %}
                 </td>
-                
-                {% if user.is_admin %}
-                <td class="px-3">
-                    <div class="d-flex gap-1 justify-content-center align-items-center">
-                        
-                        {% if report.status|lower == 'reported' or not report.status %}
-                        <form action="{% url 'update_status' report.pk %}" method="POST" class="m-0 d-inline p-0">
-                            {% csrf_token %}
-                            <input type="hidden" name="status" value="Verified">
-                            <button type="submit" class="btn btn-sm btn-primary px-2" style="font-size: 0.75rem;">Verifikasi</button>
-                        </form>
-                        {% endif %}
-
-                        <a href="{% url 'update_report' report.pk %}" class="btn btn-sm btn-info text-white px-2" style="font-size: 0.75rem;">Edit</a>
-                        <a href="{% url 'delete_report' report.pk %}" class="btn btn-sm btn-danger px-2" style="font-size: 0.75rem;">Hapus</a>
-                    </div>
-                </td>
-                {% endif %}
             </tr>
             {% empty %}
             <tr>
-                <td colspan="{% if user.is_admin %}4{% else %}3{% endif %}" class="text-center py-5 bg-light">
-                    <div class="py-4">
-                        <i class="bi bi-clipboard-x text-secondary" style="font-size: 4rem;"></i>
-                        <h3 class="mt-3 fw-bold text-dark">Belum ada laporan</h3>
-                        <p class="text-muted">Database saat ini masih kosong.</p>
-                        
-                        {% if user.is_admin %}
-                        <a href="{% url 'report_create' %}" class="btn btn-primary btn-lg px-4 shadow-sm mt-2">
-                            <i class="bi bi-plus-circle me-2"></i>Tambah Laporan Sekarang
-                        </a>
-                        {% endif %}
-                    </div>
-                </td>
+                <td colspan="4" class="text-center py-5 text-muted">Belum ada laporan yang tersedia.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none;">
+            <div class="modal-header" style="background-color: #f759ab; color: white; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold" id="modalTitle">Detail Laporan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Kategori</label>
+                    <span id="modalCategory" class="fw-bold text-dark h6"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Lokasi Kejadian</label>
+                    <span id="modalLocation" class="text-dark"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Deskripsi</label>
+                    <div id="modalDescription" class="p-3 rounded bg-light" style="font-size: 0.9rem; line-height: 1.6;"></div>
+                </div>
+                <div class="mb-0">
+                    <label class="text-muted small d-block">Status</label>
+                    <span id="modalStatus" class="badge rounded-pill"></span>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // FUNGSI LIVE SEARCH (SCREENSHOT NO. 3)
+    function filterTable() {
+        let input = document.getElementById("searchInput").value.toLowerCase();
+        let rows = document.querySelectorAll("#reportTable tbody tr");
+
+        rows.forEach(row => {
+            let text = row.innerText.toLowerCase();
+            // Jika kata kunci ditemukan, tampilkan row, jika tidak sembunyikan
+            row.style.display = text.includes(input) ? "" : "none";
+        });
+    }
+
+    // FUNGSI DETAIL MODAL AJAX (SCREENSHOT NO. 4)
+    function showDetail(id) {
+        fetch(`/report/${id}/`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Isi data ke dalam modal
+            document.getElementById('modalTitle').innerText = data.title;
+            document.getElementById('modalCategory').innerText = data.category;
+            document.getElementById('modalLocation').innerText = data.location;
+            document.getElementById('modalDescription').innerText = data.description;
+            
+            // Atur warna badge status di modal
+            const statusBadge = document.getElementById('modalStatus');
+            statusBadge.innerText = data.status;
+            
+            // Reset class badge
+            statusBadge.className = 'badge rounded-pill ';
+            if (data.status === 'VERIFIED') statusBadge.classList.add('bg-primary');
+            else if (data.status === 'IN_PROGRESS') statusBadge.classList.add('bg-warning', 'text-dark');
+            else if (data.status === 'RESOLVED') statusBadge.classList.add('bg-secondary');
+            else statusBadge.classList.add('bg-info', 'text-dark');
+
+            // Tampilkan modal secara programmatik
+            var myModal = new bootstrap.Modal(document.getElementById('detailModal'));
+            myModal.show();
+        })
+        .catch(error => {
+            console.error('Error Fetching Data:', error);
+            alert('Gagal mengambil data detail.');
+        });
+    }
+</script>
 {% endblock %}

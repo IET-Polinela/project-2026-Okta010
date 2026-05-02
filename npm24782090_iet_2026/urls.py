@@ -23,4 +23,5 @@ urlpatterns = [
     path('auth/', include('usermanagement_24782090.urls')),
     path('about/', include('about.urls')),
     path('contacts/', include('contacts.urls')),
+    path('dashboard/', include('dashboard_24782090.urls')),
 ]
