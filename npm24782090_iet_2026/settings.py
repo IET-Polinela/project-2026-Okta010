@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'usermanagement_24782090',
+    #'usermanagement_24782090',
+    'rest_framework',
     'main_app',
     'about',
     'contacts',
@@ -129,7 +131,7 @@ STATICFILES_DIRS = [
 ]
 
 # Definisi Custom User Model [cite: 21]
-AUTH_USER_MODEL = 'usermanagement_24782090.User'
+AUTH_USER_MODEL = 'main_app.CustomUser'
 
 # Alur navigasi autentikasi 
 LOGIN_REDIRECT_URL = 'report_list'
@@ -140,4 +142,10 @@ LOGIN_URL = 'login'
 from django.contrib.messages import constants as messages
 MESSAGE_TAGS = {
     messages.ERROR: 'danger',
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ]
 }

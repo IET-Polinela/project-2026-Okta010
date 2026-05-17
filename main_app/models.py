@@ -1,11 +1,36 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+class CustomUser(AbstractUser):
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='customuser_set',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='customuser_permissions_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
 
 class Report(models.Model):
-    # 1. TAMBAHKAN variabel pilihan status di sini [cite: 151-156]
+    reporter = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.CASCADE, 
+        related_name='reports', 
+        null=True,
+        blank=True
+    )
+
     STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
         ('REPORTED', 'Reported'),
         ('VERIFIED', 'Verified'),
-        ('IN PROGRESS', 'In Progress'),
+        ('IN_PROGRESS', 'In Progress'),
         ('RESOLVED', 'Resolved'),
     ]
 
@@ -14,14 +39,14 @@ class Report(models.Model):
     description = models.TextField()
     location = models.CharField(max_length=200)
 
-    # 2. PERBARUI field status dengan menambahkan parameter 'choices' [cite: 163-166]
     status = models.CharField(
         max_length=20, 
-        choices=STATUS_CHOICES,  # Menghubungkan ke STATUS_CHOICES
-        default='REPORTED'
+        choices=STATUS_CHOICES, 
+        default='DRAFT'
     )
-    
+ 
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
