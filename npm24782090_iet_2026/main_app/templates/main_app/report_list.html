@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold" style="color: #f759ab;">Daftar Laporan</h2>
+    {% if user.is_admin %}
+    <a href="{% url 'report_create' %}" class="btn btn-pink-custom rounded-pill px-4 shadow-sm" style="background-color: #f759ab; color: white;">
+        <i class="bi bi-plus-circle me-1"></i> Tambah Laporan
+    </a>
+    {% endif %}
+</div>
+
+<div class="mb-4">
+    <div class="input-group shadow-sm">
+        <span class="input-group-text bg-white border-end-0" style="border-color: #f759ab; border-radius: 10px 0 0 10px;">
+            <i class="bi bi-search" style="color: #f759ab;"></i>
+        </span>
+        <input type="text" id="searchInput" class="form-control border-start-0" 
+               placeholder="Cari lokasi atau judul laporan..." 
+               style="border-color: #f759ab; border-radius: 0 10px 10px 0;" 
+               onkeyup="filterTable()">
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle" id="reportTable">
+        <thead style="background-color: #fff0f6; color: #f759ab;">
+            <tr>
+                <th scope="col" class="py-3">Judul</th>
+                <th scope="col" class="py-3">Lokasi</th>
+                <th scope="col" class="py-3">Status</th>
+                <th scope="col" class="py-3 text-center">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td class="fw-medium">{{ report.title }}</td>
+                <td class="text-muted small">{{ report.location }}</td>
+                <td>
+                    <span class="badge rounded-pill {% if report.status == 'VERIFIED' %}bg-primary{% elif report.status == 'IN_PROGRESS' %}bg-warning text-dark{% elif report.status == 'RESOLVED' %}bg-secondary{% else %}bg-info text-dark{% endif %}">
+                        {{ report.status }}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <button class="btn btn-sm px-3 rounded-pill" 
+                            style="background-color: #00bcd4; color: white;" 
+                            onclick="showDetail({{ report.id }})">
+                        Detail
+                    </button>
+                    
+                    {% if user.is_admin %}
+                    <a href="{% url 'update_report' report.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill border-0 ms-1">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center py-5 text-muted">Belum ada laporan yang tersedia.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none;">
+            <div class="modal-header" style="background-color: #f759ab; color: white; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold" id="modalTitle">Detail Laporan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Kategori</label>
+                    <span id="modalCategory" class="fw-bold text-dark h6"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Lokasi Kejadian</label>
+                    <span id="modalLocation" class="text-dark"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Deskripsi</label>
+                    <div id="modalDescription" class="p-3 rounded bg-light" style="font-size: 0.9rem; line-height: 1.6;"></div>
+                </div>
+                <div class="mb-0">
+                    <label class="text-muted small d-block">Status</label>
+                    <span id="modalStatus" class="badge rounded-pill"></span>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // FUNGSI LIVE SEARCH (SCREENSHOT NO. 3)
+    function filterTable() {
+        let input = document.getElementById("searchInput").value.toLowerCase();
+        let rows = document.querySelectorAll("#reportTable tbody tr");
+
+        rows.forEach(row => {
+            let text = row.innerText.toLowerCase();
+            // Jika kata kunci ditemukan, tampilkan row, jika tidak sembunyikan
+            row.style.display = text.includes(input) ? "" : "none";
+        });
+    }
+
+    // FUNGSI DETAIL MODAL AJAX (SCREENSHOT NO. 4)
+    function showDetail(id) {
+        fetch(`/report/${id}/`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Isi data ke dalam modal
+            document.getElementById('modalTitle').innerText = data.title;
+            document.getElementById('modalCategory').innerText = data.category;
+            document.getElementById('modalLocation').innerText = data.location;
+            document.getElementById('modalDescription').innerText = data.description;
+            
+            // Atur warna badge status di modal
+            const statusBadge = document.getElementById('modalStatus');
+            statusBadge.innerText = data.status;
+            
+            // Reset class badge
+            statusBadge.className = 'badge rounded-pill ';
+            if (data.status === 'VERIFIED') statusBadge.classList.add('bg-primary');
+            else if (data.status === 'IN_PROGRESS') statusBadge.classList.add('bg-warning', 'text-dark');
+            else if (data.status === 'RESOLVED') statusBadge.classList.add('bg-secondary');
+            else statusBadge.classList.add('bg-info', 'text-dark');
+
+            // Tampilkan modal secara programmatik
+            var myModal = new bootstrap.Modal(document.getElementById('detailModal'));
+            myModal.show();
+        })
+        .catch(error => {
+            console.error('Error Fetching Data:', error);
+            alert('Gagal mengambil data detail.');
+        });
+    }
+</script>
+{% endblock %}
