@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Pendaftaran Citizen - Bandung City{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Daftar Akun Baru</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Silakan isi formulir di bawah ini untuk mendaftar sebagai Citizen.</p>
+                <hr>
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle-fill me-2"></i>Daftar Sekarang
+                        </button>
+                        <a href="{% url 'login' %}" class="btn btn-outline-secondary">
+                            Sudah punya akun? Masuk di sini
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var inputs = document.getElementsByTagName('input');
+    for (var i = 0; i < inputs.length; i++) {
+        if (inputs[i].type !== 'checkbox') {
+            inputs[i].classList.add('form-control');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Bandung City{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background-color: #fce4ec !important;
+    }
+    .main-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+    .home-card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+    }
+    .btn-pink {
+        background-color: #ff85a2 !important;
+        color: white !important;
+        border: none !important;
+        padding: 10px 15px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="home-card">
+        <h2 class="fw-bold mb-2" style="color: #ff69b4; font-size: 1.6rem;">
+            Selamat Datang di Kota Bandung
+        </h2>
+        
+        <p class="text-muted mb-4" style="font-size: 0.95rem;">
+            Sistem pelaporan masalah Kota Bandung
+        </p>
+
+        <div class="d-flex justify-content-center gap-2">
+            <a href="{% url 'report_list' %}" class="btn btn-pink shadow-sm">
+                Lihat Laporan
+            </a>
+
+            <a href="{% url 'report_create' %}" class="btn btn-pink shadow-sm">
+                + Tambah Laporan
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
