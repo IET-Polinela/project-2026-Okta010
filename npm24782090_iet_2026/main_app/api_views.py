@@ -1,11 +1,29 @@
 from rest_framework import viewsets, permissions
+from rest_framework.pagination import PageNumberPagination
 from .models import Report
 from .serializers import ReportSerializer
 from .permissions import IsOwnerAndDraftOrReadOnly
 
+class ReportPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
 class ReportViewSet(viewsets.ModelViewSet):
-    queryset = Report.objects.all()
+    queryset = Report.objects.all().order_by('-updated_at')
     serializer_class = ReportSerializer
+    pagination_class = ReportPagination
+
+    def get_queryset(self):
+        queryset = Report.objects.all().order_by('-updated_at')
+        tab = self.request.query_params.get('tab')
+
+        if tab == 'my_reports':
+            return queryset.filter(reporter=self.request.user)
+        elif tab == 'feed':
+            return queryset.exclude(status='DRAFT').exclude(reporter=self.request.user)
+
+        return queryset
 
     def get_permissions(self):
         """

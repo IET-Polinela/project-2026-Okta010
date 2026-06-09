@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% csrf_token %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold" style="color: #f759ab;">Daftar Laporan</h2>
     {% if user.is_admin %}
@@ -43,16 +44,30 @@
                     </span>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-sm px-3 rounded-pill" 
-                            style="background-color: #00bcd4; color: white;" 
+                    <button class="btn btn-sm btn-warning rounded-pill" 
+                            title="Edit"
+                            onclick="editReport({{ report.id }})">
+                        Edit
+                    </button>
+                    
+                    <button class="btn btn-sm btn-danger rounded-pill ms-1" 
+                            title="Hapus"
+                            onclick="deleteReport({{ report.id }})">
+                        Hapus
+                    </button>
+                    
+                    <button class="btn btn-sm btn-info rounded-pill ms-1" 
+                            title="Detail"
                             onclick="showDetail({{ report.id }})">
                         Detail
                     </button>
                     
-                    {% if user.is_admin %}
-                    <a href="{% url 'update_report' report.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill border-0 ms-1">
-                        <i class="bi bi-pencil-square"></i>
-                    </a>
+                    {% if user.is_staff and report.status != 'RESOLVED' %}
+                    <button class="btn btn-sm btn-success rounded-pill ms-1" 
+                            title="Proses"
+                            onclick="updateStatus({{ report.id }})">
+                        Proses
+                    </button>
                     {% endif %}
                 </td>
             </tr>
@@ -63,6 +78,34 @@
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none;">
+            <div class="modal-header" style="background-color: #f759ab; color: white; border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold">Update Status Laporan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Pilih Status</label>
+                    <select id="statusSelect" class="form-select">
+                        <option value="">-- Pilih Status --</option>
+                        <option value="DRAFT">Draft</option>
+                        <option value="REPORTED">Dilaporkan</option>
+                        <option value="VERIFIED">Terverifikasi</option>
+                        <option value="IN_PROGRESS">Sedang Diproses</option>
+                        <option value="RESOLVED">Selesai</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-pink-custom rounded-pill px-4" style="background-color: #f759ab; color: white;" onclick="saveStatus()">Simpan</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
@@ -100,6 +143,8 @@
 
 {% block scripts %}
 <script>
+    let currentReportId = null;
+
     // FUNGSI LIVE SEARCH (SCREENSHOT NO. 3)
     function filterTable() {
         let input = document.getElementById("searchInput").value.toLowerCase();
@@ -143,6 +188,57 @@
         .catch(error => {
             console.error('Error Fetching Data:', error);
             alert('Gagal mengambil data detail.');
+        });
+    }
+
+    // FUNGSI EDIT REPORT
+    function editReport(id) {
+        window.location.href = `/report/update/${id}/`;
+    }
+
+    // FUNGSI HAPUS REPORT
+    function deleteReport(id) {
+        if (confirm('Apakah Anda yakin ingin menghapus laporan ini?')) {
+            window.location.href = `/report/delete/${id}/`;
+        }
+    }
+
+    // FUNGSI UPDATE STATUS
+    function updateStatus(id) {
+        currentReportId = id;
+        document.getElementById('statusSelect').value = '';
+        var modal = new bootstrap.Modal(document.getElementById('statusModal'));
+        modal.show();
+    }
+
+    // FUNGSI SIMPAN STATUS
+    function saveStatus() {
+        const status = document.getElementById('statusSelect').value;
+        if (!status) {
+            alert('Pilih status terlebih dahulu!');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('status', status);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]')?.value || '');
+
+        fetch(`/report/update-status/${currentReportId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => {
+            if (response.ok) {
+                alert('Status laporan berhasil diperbarui!');
+                location.reload();
+            } else {
+                alert('Gagal memperbarui status.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan.');
         });
     }
 </script>

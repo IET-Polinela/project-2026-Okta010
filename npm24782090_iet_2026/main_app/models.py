@@ -2,24 +2,6 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-# 1. Definisikan CustomUser terlebih dahulu
-class CustomUser(AbstractUser):
-    groups = models.ManyToManyField(
-        'auth.Group',
-        related_name='customuser_set',
-        blank=True,
-        help_text='The groups this user belongs to.',
-        verbose_name='groups',
-    )
-    user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        related_name='customuser_permissions_set',
-        blank=True,
-        help_text='Specific permissions for this user.',
-        verbose_name='user permissions',
-    )
-
-# 2. Baru definisikan model Report di bawahnya (Cukup SATU saja)
 class Report(models.Model):
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),

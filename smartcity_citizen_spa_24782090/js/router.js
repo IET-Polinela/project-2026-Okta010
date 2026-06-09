@@ -21,39 +21,71 @@ const routes = {
         <div class="row g-4">
             <aside class="col-12 col-lg-3">
                 <div class="card border-0 p-3 shadow-sm sticky-top" style="top: 20px;">
-                    <button class="btn btn-pink btn-lg w-100 fw-bold mb-3">
-                        <i class="bi bi-plus-circle-fill me-2"></i>Laporan Baru
+                    <button id="openReportModalBtn" type="button" class="btn btn-pink btn-lg w-100 fw-bold mb-3" onclick="openReportModal()">
+                        <i class="bi bi-plus-circle-fill me-2"></i>Tambah Laporan Baru
                     </button>
+                    <div class="mb-3">
+                        <h6 class="text-uppercase text-muted mb-3">Rekap Status</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Draft</span><strong id="summaryDraft">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Diproses</span><strong id="summaryInProgress">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Selesai</span><strong id="summaryResolved">0</strong>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
             <section class="col-12 col-lg-6">
-                <div class="card border-0 p-5 shadow-sm text-center text-muted border-dashed" style="border: 2px dashed #ff69b4;">
-                    <i class="bi bi-inbox fs-1 text-pink"></i>
-                    <h5 class="mt-2 text-dark fw-bold">Selamat Datang di Bandung City Portal!</h5>
-                    <p class="small">Koneksi API untuk data laporan akan diimplementasikan pada Lab 12.</p>
+                <div class="card border-0 p-3 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <div class="nav nav-pills" id="dashboardTabs" role="tablist"></div>
+                        <button id="logoutBtn" class="btn btn-outline-secondary btn-sm">Logout</button>
+                    </div>
+                    <div id="reportList"></div>
+                    <nav aria-label="Pagination" id="paginationNav"></nav>
                 </div>
             </section>
 
             <aside class="col-lg-3 d-none d-lg-block">
                 <div class="card border-0 p-3 shadow-sm sticky-top" style="top: 20px;">
-                    <h5 class="fw-bold text-pink"><i class="bi bi-info-circle-fill me-2"></i>Pengumuman</h5>
-                    <p class="small text-muted">Aplikasi dalam masa pengembangan infrastruktur Bandung Smart City.</p>
+                    <h5 class="fw-bold text-pink"><i class="bi bi-info-circle-fill me-2"></i>Petunjuk</h5>
+                    <p class="small text-muted">Pilih tab untuk melihat Laporan Saya atau Feed Kota. Tombol tambah akan membuka modal form tanpa reload.</p>
                 </div>
             </aside>
         </div>
+
     `
 };
 
 function handleRouting() {
     const hash = window.location.hash || '#login';
     const contentDiv = document.getElementById('app-content');
-    
+
+    if (hash === '#dashboard' && !localStorage.getItem('access_token')) {
+        window.location.hash = '#login';
+        return;
+    }
+
+    if (hash === '#login' && localStorage.getItem('access_token')) {
+        window.location.hash = '#dashboard';
+        return;
+    }
+
     contentDiv.innerHTML = routes[hash] || routes['#login'];
 
     if (hash === '#login') {
         if (typeof setupLoginForm === 'function') {
             setupLoginForm();
+        }
+    }
+
+    if (hash === '#dashboard') {
+        if (typeof setupDashboard === 'function') {
+            setupDashboard();
         }
     }
 }

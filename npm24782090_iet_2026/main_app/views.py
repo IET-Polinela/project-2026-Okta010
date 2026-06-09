@@ -4,6 +4,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.db.models import Count
 from .models import Report
@@ -61,11 +63,22 @@ class ReportDeleteView(DeleteView):
     template_name = 'main_app/report_confirm_delete.html'
     success_url = reverse_lazy('report_list')
 
+@method_decorator(login_required, name='dispatch')
 class ReportUpdateStatusView(View):
     def post(self, request, pk):
         report = get_object_or_404(Report, pk=pk)
+        
+        # Hanya admin yang bisa update status
+        if not request.user.is_staff:
+            messages.error(request, "Anda tidak memiliki izin untuk mengubah status laporan.")
+            return redirect('report_list')
+        
         new_status = request.POST.get('status')
-        if new_status:
+        if new_status and new_status in dict(Report.STATUS_CHOICES):
             report.status = new_status
             report.save()
+            messages.success(request, "Status laporan berhasil diperbarui!")
+        else:
+            messages.error(request, "Status tidak valid.")
+        
         return redirect('report_list')

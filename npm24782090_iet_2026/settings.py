@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-k!zrp(32g$&^nhjvvmpdte0mr_dv^*wfw4^+71nrp&(c&^sl6@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'usermanagement_24782090',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -159,3 +161,11 @@ REST_FRAMEWORK = {
 }
 
 AUTH_USER_MODEL = 'main_app.CustomUser'
+
+# CORS Configuration untuk SPA Frontend
+CORS_ALLOWED_ORIGINS = [
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+CORS_ALLOW_CREDENTIALS = True

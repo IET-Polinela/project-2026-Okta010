@@ -133,9 +133,6 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Definisi Custom User Model [cite: 21]
-AUTH_USER_MODEL = 'main_app.CustomUser'
-
 # Alur navigasi autentikasi 
 LOGIN_REDIRECT_URL = 'report_list'
 LOGOUT_REDIRECT_URL = 'login'
@@ -161,7 +158,7 @@ REST_FRAMEWORK = {
 }
 
 # Definisi Custom User Model
-AUTH_USER_MODEL = 'main_app.CustomUser'
+AUTH_USER_MODEL = 'usermanagement_24782090.User'
 
 # Alur navigasi autentikasi 
 LOGIN_REDIRECT_URL = 'report_list'
