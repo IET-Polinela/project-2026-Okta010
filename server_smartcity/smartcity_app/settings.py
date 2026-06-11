@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-k!zrp(32g$&^nhjvvmpdte0mr_dv^*wfw4^+71nrp&(c&^sl6@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -38,10 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'usermanagement_24782090',
     'rest_framework',
     'rest_framework_simplejwt',
-    'corsheaders',
     'main_app',
     'about',
     'contacts',
@@ -59,7 +59,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'npm24782090_iet_2026.urls'
+ROOT_URLCONF = 'smartcity_app.urls'
 
 TEMPLATES = [
     {
@@ -76,8 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'npm24782090_iet_2026.wsgi.application'
-
+WSGI_APPLICATION = 'smartcity_app.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -129,41 +128,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
-
-# Alur navigasi autentikasi 
-LOGIN_REDIRECT_URL = 'report_list'
-LOGOUT_REDIRECT_URL = 'login'
-LOGIN_URL = 'login'
-
-# Konfigurasi Message Tags untuk Feedback System 
-from django.contrib.messages import constants as messages
-MESSAGE_TAGS = {
-    messages.ERROR: 'danger',
-}
-
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-    ],
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Definisi Custom User Model
 AUTH_USER_MODEL = 'usermanagement_24782090.User'
 
 # Alur navigasi autentikasi 
 LOGIN_REDIRECT_URL = 'report_list'
-LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
+LOGIN_URL = 'login'
 
 # Konfigurasi Message Tags untuk Feedback System 
 from django.contrib.messages import constants as messages
@@ -171,7 +144,6 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger',
 }
 
-# Django REST Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -185,13 +157,11 @@ REST_FRAMEWORK = {
     ),
 }
 
-# CORS Settings (Langkah 1 Lab 11)
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS Configuration untuk SPA Frontend
+CORS_ALLOWED_ORIGINS = [
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
 
-# Simple JWT Settings untuk kelancaran Testing Auth Frontend
-from datetime import timedelta
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-}
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
