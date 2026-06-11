@@ -1,5 +1,7 @@
 from rest_framework import viewsets, permissions
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import PermissionDenied
+
 from .models import Report
 from .serializers import ReportSerializer
 from .permissions import IsOwnerAndDraftOrReadOnly
@@ -38,8 +40,13 @@ class ReportViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Otomatis mengasosiasikan field 'reporter' dengan user yang sedang login
-        saat membuat data laporan baru melalui API.
+        Citizen boleh membuat laporan.
+        Admin tidak diperbolehkan membuat laporan melalui SPA.
         """
+
+        if self.request.user.is_staff:
+            raise PermissionDenied(
+                "Admin tidak diperbolehkan membuat laporan."
+            )
+
         serializer.save(reporter=self.request.user)
-        
