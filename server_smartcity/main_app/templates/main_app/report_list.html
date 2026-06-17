@@ -4,11 +4,15 @@
 {% csrf_token %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold" style="color: #f759ab;">Daftar Laporan</h2>
-    {% if user.is_admin %}
-    <a href="{% url 'report_create' %}" class="btn btn-pink-custom rounded-pill px-4 shadow-sm" style="background-color: #f759ab; color: white;">
-        <i class="bi bi-plus-circle me-1"></i> Tambah Laporan
+    {% if user.is_staff %}
+    <a href="{% url 'report_create' %}"
+    class="btn btn-pink-custom rounded-pill px-4 shadow-sm"
+    style="background-color:#f759ab;color:white;">
+        <i class="bi bi-plus-circle me-1"></i>
+        Tambah Laporan
     </a>
     {% endif %}
+   
 </div>
 
 <div class="mb-4">
@@ -44,6 +48,7 @@
                     </span>
                 </td>
                 <td class="text-center">
+                    {% if user.is_staff %}
                     <button class="btn btn-sm btn-warning rounded-pill" 
                             title="Edit"
                             onclick="editReport({{ report.id }})">
@@ -55,6 +60,7 @@
                             onclick="deleteReport({{ report.id }})">
                         Hapus
                     </button>
+                     {% endif %}
                     
                     <button class="btn btn-sm btn-info rounded-pill ms-1" 
                             title="Detail"
@@ -63,13 +69,14 @@
                     </button>
                     
                     {% if user.is_staff and report.status != 'RESOLVED' %}
-                    <button class="btn btn-sm btn-success rounded-pill ms-1" 
-                            title="Proses"
+                    <button class="btn btn-sm btn-success rounded-pill ms-1"
                             onclick="updateStatus({{ report.id }})">
-                        Proses
-                    </button>
+                         Proses
+                     </button>
                     {% endif %}
+
                 </td>
+                
             </tr>
             {% empty %}
             <tr>

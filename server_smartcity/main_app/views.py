@@ -2,6 +2,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth.decorators import login_required
@@ -10,8 +11,9 @@ from django.http import JsonResponse
 from django.db.models import Count
 from .models import Report
 
-class DashboardView(TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard/index.html'
+    login_url = 'login'
 
 def dashboard_data(request):
     status_data = Report.objects.values('status').annotate(total=Count('status'))
@@ -23,13 +25,15 @@ def dashboard_data(request):
         'category_counts': [item['total'] for item in category_data],
     })
 
-class ReportListView(ListView):
+
+class ReportListView(LoginRequiredMixin, ListView):
     model = Report
     template_name = 'main_app/report_list.html' 
     context_object_name = 'reports'
     ordering = ['-id']
+    login_url = 'login'
 
-class ReportDetailView(DetailView):
+class ReportDetailView(LoginRequiredMixin, DetailView):
     model = Report
     def render_to_response(self, context, **response_kwargs):
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -44,24 +48,48 @@ class ReportDetailView(DetailView):
             return JsonResponse(data)
         return super().render_to_response(context, **response_kwargs)
 
-class ReportCreateView(SuccessMessageMixin, CreateView):
+class ReportCreateView(
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    SuccessMessageMixin,
+    CreateView
+):
     model = Report
     fields = ['title', 'category', 'description', 'location']
     template_name = 'main_app/add_report.html'
     success_url = reverse_lazy('report_list')
     success_message = "Laporan berhasil ditambahkan!"
 
-class ReportUpdateView(SuccessMessageMixin, UpdateView):
+    def test_func(self):
+        return self.request.user.is_staff
+
+
+class ReportUpdateView(
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    SuccessMessageMixin,
+    UpdateView
+):
     model = Report
     fields = ['title', 'category', 'description', 'location']
     template_name = 'main_app/add_report.html'
     success_url = reverse_lazy('report_list')
     success_message = "Laporan berhasil diperbarui!"
 
-class ReportDeleteView(DeleteView):
+    def test_func(self):
+         return self.request.user.is_staff    
+
+class ReportDeleteView(
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    DeleteView
+):
     model = Report
     template_name = 'main_app/report_confirm_delete.html'
     success_url = reverse_lazy('report_list')
+
+    def test_func(self):
+        return self.request.user.is_staff
 
 @method_decorator(login_required, name='dispatch')
 class ReportUpdateStatusView(View):
