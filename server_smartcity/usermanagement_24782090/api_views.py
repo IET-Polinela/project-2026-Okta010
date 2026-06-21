@@ -3,7 +3,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import User 
 from .serializers import RegisterSerializer 
+from drf_spectacular.utils import extend_schema
 
+
+@extend_schema(exclude=True)
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)

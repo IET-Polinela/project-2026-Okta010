@@ -15,6 +15,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard/index.html'
     login_url = 'login'
 
+@login_required
 def dashboard_data(request):
     status_data = Report.objects.values('status').annotate(total=Count('status'))
     category_data = Report.objects.values('category').annotate(total=Count('category'))
@@ -34,6 +35,7 @@ class ReportListView(LoginRequiredMixin, ListView):
     login_url = 'login'
 
 class ReportDetailView(LoginRequiredMixin, DetailView):
+    login_url = 'login'
     model = Report
     def render_to_response(self, context, **response_kwargs):
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
