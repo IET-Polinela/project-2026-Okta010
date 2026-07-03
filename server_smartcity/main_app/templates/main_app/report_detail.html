@@ -42,15 +42,52 @@
                 </div>
 
                 <div class="mt-5 d-flex gap-2">
+                    {% if request.user.is_staff %}
+
+                        {% if "VERIFIED" in allowed_transitions %}
+                        <form method="post" action="{% url 'update_status' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="VERIFIED">
+                            <button type="submit" class="btn btn-success">
+                                VERIFIED
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        {% if "IN_PROGRESS" in allowed_transitions %}
+                        <form method="post" action="{% url 'update_status' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="IN_PROGRESS">
+                            <button type="submit" class="btn btn-warning">
+                                IN PROGRESS
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        {% if "RESOLVED" in allowed_transitions %}
+                        <form method="post" action="{% url 'update_status' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="RESOLVED">
+                            <button type="submit" class="btn btn-primary">
+                                RESOLVED
+                            </button>
+                        </form>
+                        {% endif %}
+
+                    {% endif %}
+
                     <a href="{% url 'report_list' %}" class="btn btn-outline-secondary px-4">
                         <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
                     </a>
+
                     <a href="{% url 'update_report' report.pk %}" class="btn btn-info text-white px-4">
                         <i class="bi bi-pencil-square me-1"></i> Ubah Data
                     </a>
+
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endblock %}

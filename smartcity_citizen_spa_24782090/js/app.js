@@ -5,6 +5,8 @@ let currentTab = 'my_reports';
 let currentPage = 1;
 let editingReportId = null;
 let reportModal = null;
+let statusChartInstance = null;
+let categoryChartInstance = null;
 
 function statusBadgeClass(status) {
     switch (status) {
@@ -41,20 +43,118 @@ function statusProgress(status) {
 }
 
 function formatTimestamp(timestamp) {
+    if (!timestamp) return '-';
     const date = new Date(timestamp);
     return date.toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// loadDashboardData: fetch paginated report data from the API and update the UI
-// by rendering the report cards and pagination controls.
+// ---------------------------------------------------------------------------
+// Chart.js: dimuat secara dinamis (CDN) agar tidak perlu mengubah index.html.
+// ---------------------------------------------------------------------------
+function loadChartJsLibrary() {
+    return new Promise((resolve, reject) => {
+        if (window.Chart) {
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Gagal memuat Chart.js dari CDN'));
+        document.head.appendChild(script);
+    });
+}
+
+async function renderCharts(reports) {
+    try {
+        await loadChartJsLibrary();
+    } catch (error) {
+        console.error('renderCharts:', error);
+        return;
+    }
+
+    const statusCanvas = document.getElementById('statusChart');
+    const categoryCanvas = document.getElementById('categoryChart');
+    if (!statusCanvas || !categoryCanvas || !window.Chart) return;
+
+    const statusCounts = {};
+    const categoryCounts = {};
+    reports.forEach(report => {
+        const status = report.status || 'UNKNOWN';
+        const category = report.category || 'Lainnya';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    });
+
+    if (statusChartInstance) {
+        statusChartInstance.destroy();
+    }
+    if (categoryChartInstance) {
+        categoryChartInstance.destroy();
+    }
+
+    statusChartInstance = new window.Chart(statusCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusCounts),
+            datasets: [{
+                data: Object.values(statusCounts),
+                backgroundColor: ['#ffc107', '#0dcaf0', '#0d6efd', '#6c757d', '#198754', '#adb5bd']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    categoryChartInstance = new window.Chart(categoryCanvas, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(categoryCounts),
+            datasets: [{
+                label: 'Jumlah Laporan',
+                data: Object.values(categoryCounts),
+                backgroundColor: '#e91e8c'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+}
+
+function populateStatusTables(reports) {
+    const reportedBody = document.getElementById('reportedTableBody');
+    const resolvedBody = document.getElementById('resolvedTableBody');
+    if (!reportedBody || !resolvedBody) return;
+
+    const reported = reports.filter(r => r.status !== 'RESOLVED' && r.status !== 'DRAFT');
+    const resolved = reports.filter(r => r.status === 'RESOLVED');
+
+    const rowHtml = r => `
+        <tr>
+            <td>${r.title || '-'}</td>
+            <td>${r.category || '-'}</td>
+            <td>${(r.status || '-').replace('_', ' ')}</td>
+        </tr>
+    `;
+
+    reportedBody.innerHTML = reported.length
+        ? reported.map(rowHtml).join('')
+        : '<tr><td colspan="3" class="text-center text-muted">Tidak ada laporan berjalan.</td></tr>';
+
+    resolvedBody.innerHTML = resolved.length
+        ? resolved.map(rowHtml).join('')
+        : '<tr><td colspan="3" class="text-center text-muted">Belum ada laporan selesai.</td></tr>';
+}
+
+// setupDashboard: pasang semua event listener halaman dashboard lalu muat data awal.
 async function setupDashboard() {
     const dashboardTabs = document.getElementById('dashboardTabs');
     if (dashboardTabs) {
-        dashboardTabs.innerHTML = [
-            { key: 'my_reports', label: 'Laporan Saya' },
-            { key: 'feed', label: 'Feed Kota' }
-        ].map(tab => `
-            <button type="button" class="nav-link ${tab.key === currentTab ? 'active' : ''}" data-tab="${tab.key}">
+        const tabDefs = [
+            { key: 'my_reports', label: 'Laporan Saya', id: 'tabMyReports' },
+            { key: 'feed', label: 'Feed Kota', id: 'tabFeedKota' }
+        ];
+
+        dashboardTabs.innerHTML = tabDefs.map(tab => `
+            <button type="button" id="${tab.id}" class="nav-link ${tab.key === currentTab ? 'active' : ''}" data-tab="${tab.key}">
                 ${tab.label}
             </button>
         `).join('');
@@ -71,18 +171,18 @@ async function setupDashboard() {
     }
 
     const openButton = document.getElementById('openReportModalBtn');
+    const openButtonAlias = document.getElementById('btnBukaModal');
     const logoutButton = document.getElementById('logoutBtn');
-    const saveDraftButton = document.getElementById('saveDraftBtn');
-    const submitReportButton = document.getElementById('submitReportBtn');
+    const saveDraftButton = document.getElementById('btnDraft');
+    const submitReportButton = document.getElementById('btnSubmit');
 
     const modalElement = document.getElementById('reportModal');
     if (modalElement) {
         reportModal = new bootstrap.Modal(modalElement);
     }
 
-    openButton?.addEventListener('click', () => {
-        openReportModal();
-    });
+    openButton?.addEventListener('click', () => openReportModal());
+    openButtonAlias?.addEventListener('click', () => openReportModal());
 
     logoutButton?.addEventListener('click', () => {
         localStorage.removeItem('access_token');
@@ -96,16 +196,15 @@ async function setupDashboard() {
     await loadDashboardData(currentTab, currentPage);
 }
 
-// Ambil daftar laporan terpaginated lalu perbarui UI dengan renderList dan renderPagination.
+// Ambil daftar laporan terpaginasi lalu perbarui UI dengan renderList dan renderPagination.
 async function loadDashboardData(tab = 'my_reports', page = 1) {
     currentTab = tab;
     currentPage = page;
 
-    const reportList = document.getElementById('reportList');
-    const paginationNav = document.getElementById('paginationNav');
+    const listContainer = document.getElementById('listContainer');
 
-    if (reportList) {
-        reportList.innerHTML = '<div class="text-center py-5 text-muted">Memuat data laporan...</div>';
+    if (listContainer) {
+        listContainer.innerHTML = '<div class="col-12 text-center py-5 text-muted">Memuat data laporan...</div>';
     }
 
     try {
@@ -113,7 +212,7 @@ async function loadDashboardData(tab = 'my_reports', page = 1) {
 
         if (response.status === 401) {
             alert('Token tidak valid. Silakan login ulang.');
-            localStorage.removeItem('access_token');
+            localStorage.clear();
             window.location.hash = '#login';
             return;
         }
@@ -123,13 +222,16 @@ async function loadDashboardData(tab = 'my_reports', page = 1) {
 
         renderList(reports, tab);
         renderPagination(data, tab);
-        await loadSummaryStats();
     } catch (error) {
-        if (reportList) {
-            reportList.innerHTML = '<div class="alert alert-danger">Gagal memuat laporan. Cek koneksi backend.</div>';
+        if (listContainer) {
+            listContainer.innerHTML = '<div class="col-12"><div class="alert alert-danger">Gagal memuat laporan. Cek koneksi backend.</div></div>';
         }
         console.error('loadDashboardData error:', error);
     }
+
+    // Ringkasan statistik & grafik dimuat terpisah agar tetap tampil
+    // walaupun daftar laporan di atas gagal dimuat.
+    await loadSummaryStats();
 }
 
 async function loadSummaryStats() {
@@ -145,29 +247,35 @@ async function loadSummaryStats() {
         document.getElementById('summaryDraft').textContent = draftCount;
         document.getElementById('summaryInProgress').textContent = inProgressCount;
         document.getElementById('summaryResolved').textContent = resolvedCount;
+
+        populateStatusTables(reports);
+        await renderCharts(reports);
     } catch (error) {
         console.error('loadSummaryStats error:', error);
     }
 }
 
 function renderList(reports, tab) {
-    const reportList = document.getElementById('reportList');
-    if (!reportList) return;
+    const listContainer = document.getElementById('listContainer');
+    if (!listContainer) return;
 
     if (!reports.length) {
-        reportList.innerHTML = `
-            <div class="card border-0 p-5 shadow-sm text-center text-muted">
-                <i class="bi bi-file-earmark-text fs-1 text-pink"></i>
-                <p class="mt-3 mb-0">Belum ada laporan untuk tab ini.</p>
+        listContainer.innerHTML = `
+            <div class="col-12">
+                <div class="card border-0 p-5 shadow-sm text-center text-muted">
+                    <i class="bi bi-file-earmark-text fs-1 text-pink"></i>
+                    <p class="mt-3 mb-0">Belum ada laporan untuk tab ini.</p>
+                </div>
             </div>
         `;
         return;
     }
 
-    reportList.innerHTML = reports.map(report => {
+    listContainer.innerHTML = reports.map(report => {
         const progress = statusProgress(report.status);
         const updatedAt = formatTimestamp(report.updated_at);
         const statusClass = statusBadgeClass(report.status);
+        const reporterName = report.reporter_name || report.reporter || '-';
         const editButton =
             report.is_owner &&
             report.status === 'DRAFT'
@@ -183,33 +291,35 @@ function renderList(reports, tab) {
         const detailButton = `<button type="button" class="btn btn-sm btn-info" onclick="viewDetail(${report.id})">Detail</button>`;
 
         return `
-            <div class="card mb-3 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                        <div>
-                            <h5 class="card-title mb-1">${report.title}</h5>
-                            <p class="mb-1 text-muted small">${report.category} · ${report.location}</p>
+            <div class="col">
+                <div class="card mb-3 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                            <div>
+                                <h5 class="card-title mb-1">${report.title || '-'}</h5>
+                                <p class="mb-1 text-muted small">${report.category || '-'} · ${report.location || '-'}</p>
+                            </div>
+                            <span class="badge ${statusClass}">${(report.status || '-').replace('_', ' ')}</span>
                         </div>
-                        <span class="badge ${statusClass}">${report.status.replace('_', ' ')}</span>
-                    </div>
-                    <p class="card-text mt-3">${report.description}</p>
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <small class="text-muted">Pelapor: ${report.reporter}</small>
-                        <small class="text-muted">Terakhir diperbarui: ${updatedAt}</small>
-                    </div>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <small class="text-muted">Progress</small>
-                            <small class="text-muted">${progress.label}</small>
+                        <p class="card-text mt-3">${report.description || ''}</p>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <small class="text-muted">Pelapor: ${reporterName}</small>
+                            <small class="text-muted">Terakhir diperbarui: ${updatedAt}</small>
                         </div>
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar ${progress.barClass}" role="progressbar" style="width: ${progress.value}%" aria-valuenow="${progress.value}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="text-muted">Progress</small>
+                                <small class="text-muted">${progress.label}</small>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar ${progress.barClass}" role="progressbar" style="width: ${progress.value}%" aria-valuenow="${progress.value}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mt-3 d-flex gap-2 flex-wrap">
-                        ${editButton}
-                        ${deleteButton}
-                        ${detailButton}
+                        <div class="mt-3 d-flex gap-2 flex-wrap">
+                            ${editButton}
+                            ${deleteButton}
+                            ${detailButton}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -218,13 +328,13 @@ function renderList(reports, tab) {
 }
 
 function renderPagination(data, tab) {
-    const paginationNav = document.getElementById('paginationNav');
-    if (!paginationNav) return;
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) return;
 
     const pageSize = 10;
     const totalPages = Math.ceil((data.count || 0) / pageSize);
     if (totalPages <= 1) {
-        paginationNav.innerHTML = '';
+        paginationContainer.innerHTML = '';
         return;
     }
 
@@ -237,7 +347,7 @@ function renderPagination(data, tab) {
         `;
     }
 
-    paginationNav.innerHTML = `
+    paginationContainer.innerHTML = `
         <ul class="pagination justify-content-center">
             <li class="page-item ${!data.previous ? 'disabled' : ''}">
                 <button type="button" class="page-link" data-page="${Math.max(currentPage - 1, 1)}">Sebelumnya</button>
@@ -249,7 +359,7 @@ function renderPagination(data, tab) {
         </ul>
     `;
 
-    paginationNav.querySelectorAll('button[data-page]').forEach(button => {
+    paginationContainer.querySelectorAll('button[data-page]').forEach(button => {
         button.addEventListener('click', () => {
             const page = Number(button.dataset.page);
             if (page && page !== currentPage) {
@@ -271,10 +381,10 @@ async function editDraft(id) {
         const data = await response.json();
         editingReportId = id;
         document.getElementById('reportModalLabel').textContent = 'Edit Laporan';
-        document.getElementById('reportTitle').value = data.title || '';
-        document.getElementById('reportCategory').value = data.category || '';
-        document.getElementById('reportLocation').value = data.location || '';
-        document.getElementById('reportDescription').value = data.description || '';
+        document.getElementById('inputTitle').value = data.title || '';
+        document.getElementById('inputCategory').value = data.category || '';
+        document.getElementById('inputLocation').value = data.location || '';
+        document.getElementById('inputDescription').value = data.description || '';
 
         reportModal?.show();
     } catch (error) {
@@ -282,8 +392,6 @@ async function editDraft(id) {
         alert('Terjadi kesalahan saat membuka laporan.');
     }
 }
-
-
 
 function resetReportForm() {
     const form = document.getElementById('reportForm');
@@ -329,7 +437,7 @@ Judul: ${data.title}
 Kategori: ${data.category}
 Lokasi: ${data.location}
 Status: ${data.status}
-Pelapor: ${data.reporter}
+Pelapor: ${data.reporter_name || data.reporter || '-'}
 
 Deskripsi:
 ${data.description}
@@ -344,10 +452,10 @@ Diperbarui: ${formatTimestamp(data.updated_at)}
 }
 
 async function submitReport(status) {
-    const title = document.getElementById('reportTitle')?.value.trim();
-    const category = document.getElementById('reportCategory')?.value.trim();
-    const location = document.getElementById('reportLocation')?.value.trim();
-    const description = document.getElementById('reportDescription')?.value.trim();
+    const title = document.getElementById('inputTitle')?.value.trim();
+    const category = document.getElementById('inputCategory')?.value.trim();
+    const location = document.getElementById('inputLocation')?.value.trim();
+    const description = document.getElementById('inputDescription')?.value.trim();
 
     if (!title || !category || !location || !description) {
         alert('Semua field harus diisi.');
@@ -365,7 +473,7 @@ async function submitReport(status) {
             resetReportForm();
             editingReportId = null;
             await loadDashboardData(currentTab, currentPage);
-            alert('Laporan berhasil disimpan.');
+            alert(`Laporan berhasil disimpan sebagai ${status}.`);
             return;
         }
 
@@ -378,10 +486,73 @@ async function submitReport(status) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Halaman #reports: pencarian laporan (live search)
+// ---------------------------------------------------------------------------
+function renderSearchResults(results) {
+    const tbody = document.getElementById('reportTableBody');
+    if (!tbody) return;
+
+    if (!results || !results.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Tidak ada hasil.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = results.map(r => `
+        <tr>
+            <td>${r.title || '-'}</td>
+            <td>${r.category || '-'}</td>
+            <td>${r.location || '-'}</td>
+            <td>${(r.status || '-').replace('_', ' ')}</td>
+        </tr>
+    `).join('');
+}
+
+async function loadAllReportsForSearch() {
+    try {
+        const response = await requestAPI('/api/report/?tab=my_reports&page_size=1000');
+        const data = await response.json();
+        return data.results || [];
+    } catch (error) {
+        console.error('loadAllReportsForSearch error:', error);
+        return [];
+    }
+}
+
+function setupReportsPage() {
+    const searchInput = document.getElementById('searchInput');
+    const logoutBtnReports = document.getElementById('logoutBtnReports');
+
+    logoutBtnReports?.addEventListener('click', () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.hash = '#login';
+    });
+
+    if (!searchInput) return;
+
+    // Tampilkan semua laporan saat halaman pertama kali dibuka.
+    loadAllReportsForSearch().then(renderSearchResults);
+
+    searchInput.addEventListener('keyup', async function () {
+        const query = this.value.trim();
+        try {
+            // NOTE: endpoint /search/ ini disediakan oleh backend Django,
+            // bukan bagian dari file-file frontend ini.
+            const response = await fetch(`${BASE_URL}/search/?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            renderSearchResults(data.results || []);
+        } catch (error) {
+            console.error('search error:', error);
+        }
+    });
+}
+
 window.setupDashboard = setupDashboard;
+window.setupReportsPage = setupReportsPage;
 window.openReportModal = () => {
     editingReportId = null;
-    document.getElementById('reportModalLabel').textContent = 'Tambah Laporan Baru';
+    document.getElementById('reportModalLabel').textContent = 'Buat Laporan Baru';
     resetReportForm();
     if (!reportModal) {
         const modalElement = document.getElementById('reportModal');

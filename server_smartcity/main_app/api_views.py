@@ -18,14 +18,22 @@ class ReportViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Report.objects.all().order_by('-updated_at')
+        user = self.request.user
         tab = self.request.query_params.get('tab')
 
         if tab == 'my_reports':
-            return queryset.filter(reporter=self.request.user)
-        elif tab == 'feed':
-            return queryset.exclude(status='DRAFT').exclude(reporter=self.request.user)
+            return queryset.filter(reporter=user)
 
-        return queryset
+        if tab == 'feed':
+            return queryset.exclude(status='DRAFT').exclude(reporter=user)
+
+        # Untuk detail/update/delete:
+        # tampilkan semua laporan publik + draft milik sendiri
+        return queryset.exclude(
+            status='DRAFT'
+        ) | queryset.filter(
+            reporter=user
+        )
 
     def get_permissions(self):
         """
